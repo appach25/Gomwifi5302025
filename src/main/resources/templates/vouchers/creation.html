@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Créer un Voucher</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h2>Créer un nouveau voucher</h2>
+        
+        <form th:action="@{/vouchers/create}" method="post" class="mt-4">
+            <div class="mb-3">
+                <label for="minutes" class="form-label">Durée (en minutes) *</label>
+                <input type="number" class="form-control" id="minutes" name="minutes" required min="1">
+                <small class="form-text text-muted">Durée de validité du voucher en minutes</small>
+            </div>
+            
+            <div class="mb-3">
+                <label for="quantity" class="form-label">Quantité *</label>
+                <input type="number" class="form-control" id="quantity" name="quantity" required min="1" value="1">
+                <small class="form-text text-muted">Nombre de vouchers à créer</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Créer</button>
+            <a th:href="@{/vouchers}" class="btn btn-secondary">Annuler</a>
+        </form>
+    </div>
+</body>
+</html>

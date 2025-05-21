@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Modifier un Site</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h2>Modifier un Site</h2>
+
+        <!-- Messages -->
+        <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+        <div th:if="${erreur}" class="alert alert-danger" th:text="${erreur}"></div>
+
+        <form th:action="@{/sites/enregistrer}" th:object="${site}" method="post">
+            <input type="hidden" th:field="*{id}">
+            <input type="hidden" th:field="*{codesite}">
+
+            <div class="mb-3">
+                <label for="nom" class="form-label">Nom</label>
+                <input type="text" class="form-control" id="nom" th:field="*{nom}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="adresse" class="form-label">Adresse</label>
+                <input type="text" class="form-control" id="adresse" th:field="*{adresse}" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <a th:href="@{/sites/}" class="btn btn-secondary">Annuler</a>
+        </form>
+    </div>
+</body>
+</html>
