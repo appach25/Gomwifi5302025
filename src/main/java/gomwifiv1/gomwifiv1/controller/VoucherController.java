@@ -1,8 +1,13 @@
 package gomwifiv1.gomwifiv1.controller;
 
+import gomwifiv1.gomwifiv1.model.EtatVoucher;
 import gomwifiv1.gomwifiv1.model.Voucher;
 import gomwifiv1.gomwifiv1.repository.VoucherRepository;
+import java.util.List;
+import gomwifiv1.gomwifiv1.service.UDRRouterService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -16,16 +21,41 @@ public class VoucherController {
 
     @Autowired
     private VoucherRepository voucherRepository;
+    
+    @Autowired
+    private UDRRouterService udrRouterService;
 
     @GetMapping("/list")
+    @PreAuthorize("hasRole('ADMIN')")
     public String listVouchers(Model model) {
         model.addAttribute("vouchers", voucherRepository.findAll());
+        try {
+            ResponseEntity<String> routerVouchers = udrRouterService.getVoucherList();
+            model.addAttribute("routerVouchers", routerVouchers.getBody());
+            model.addAttribute("routerConnected", true);
+        } catch (Exception e) {
+            model.addAttribute("routerError", "Unable to connect to UDR router: " + e.getMessage());
+            model.addAttribute("routerConnected", false);
+        }
         return "vouchers/list";
     }
 
     @GetMapping("/create")
     public String showCreateForm() {
         return "vouchers/create";
+    }
+
+    @PostMapping("/delete-used")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String deleteUsedVouchers(RedirectAttributes redirectAttributes) {
+        try {
+            List<Voucher> usedVouchers = voucherRepository.findByDisponibilite(EtatVoucher.ALLOUER);
+            voucherRepository.deleteAll(usedVouchers);
+            redirectAttributes.addFlashAttribute("success", "Les vouchers utilisés ont été supprimés avec succès!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Erreur lors de la suppression des vouchers: " + e.getMessage());
+        }
+        return "redirect:/vouchers/list";
     }
 
     @PostMapping("/create")

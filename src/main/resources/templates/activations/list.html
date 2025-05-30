@@ -22,13 +22,25 @@
                             <input type="date" class="form-control" id="startDate" name="startDate" th:value="${#dates.format(startDate, 'yyyy-MM-dd')}">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="endDate">Date Fin</label>
                             <input type="date" class="form-control" id="endDate" name="endDate" th:value="${#dates.format(endDate, 'yyyy-MM-dd')}">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="userId">Utilisateur</label>
+                            <select class="form-control" id="userId" name="userId">
+                                <option value="">Tous les utilisateurs</option>
+                                <option th:each="user : ${users}" 
+                                        th:value="${user.id}" 
+                                        th:text="${user.username}"
+                                        th:selected="${userId != null && userId == user.id}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label>&nbsp;</label>
                             <button type="submit" class="btn btn-primary d-block">Filtrer</button>

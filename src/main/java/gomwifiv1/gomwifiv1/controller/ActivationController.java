@@ -3,11 +3,15 @@ package gomwifiv1.gomwifiv1.controller;
 import gomwifiv1.gomwifiv1.dto.ActivationRequest;
 import gomwifiv1.gomwifiv1.model.Activation;
 import gomwifiv1.gomwifiv1.model.Appareil;
+import gomwifiv1.gomwifiv1.model.User;
 import gomwifiv1.gomwifiv1.model.Voucher;
 import gomwifiv1.gomwifiv1.model.EtatVoucher;
 import gomwifiv1.gomwifiv1.repository.AppareilRepository;
+import gomwifiv1.gomwifiv1.repository.UserRepository;
 import gomwifiv1.gomwifiv1.repository.VoucherRepository;
 import gomwifiv1.gomwifiv1.service.ActivationService;
+import gomwifiv1.gomwifiv1.service.UserService;
+import gomwifiv1.gomwifiv1.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -17,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Date;
 import org.springframework.ui.Model;
 
@@ -38,15 +44,23 @@ public class ActivationController {
     @Autowired
     private VoucherRepository voucherRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @GetMapping("/")
     public String listActivations(
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @RequestParam(required = false) Long userId,
             Model model) {
         System.out.println("Received startDate: " + startDate);
         System.out.println("Received endDate: " + endDate);
+        System.out.println("Received userId: " + userId);
         List<Activation> activations;
-        if (startDate != null && endDate != null) {
+        
+        if (userId != null) {
+            activations = activationService.findActivationsByUserAndDateRange(userId, startDate, endDate);
+        } else if (startDate != null && endDate != null) {
             activations = activationService.findActivationsByDateRange(startDate, endDate);
         } else {
             activations = activationService.getAllActivations();
@@ -59,6 +73,8 @@ public class ActivationController {
         model.addAttribute("endDate", endDate);
         model.addAttribute("activations", activations);
         model.addAttribute("totalAmount", totalAmount);
+        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("userId", userId);
         return "activations/list";
     }
 
@@ -76,6 +92,11 @@ public class ActivationController {
         Map<String, Object> response = new HashMap<>();
         
         try {
+            // Get current user
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            User currentUser = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
             // Find appareil
             Appareil appareil = appareilRepository.findById(request.getAppareilId())
                 .orElseThrow(() -> new RuntimeException("Appareil non trouvé"));
@@ -83,16 +104,14 @@ public class ActivationController {
             // Find available voucher with matching nombre de jour
             List<Voucher> availableVouchers = voucherRepository.findAvailableVouchersByNombreDeJour(request.getNombreDeJour());
             if (availableVouchers.isEmpty()) {
-                throw new RuntimeException("Aucun voucher disponible pour " + request.getNombreDeJour() + " jours");
+                throw new RuntimeException("Aucun voucher disponible pour ce nombre de jours");
             }
-            
-            // Use the first available voucher
             Voucher voucher = availableVouchers.get(0);
             voucher.setDisponibilite(EtatVoucher.ALLOUER);
             voucherRepository.save(voucher);
 
             // Create activation
-            Activation activation = activationService.createActivation(appareil, request.getNombreDeJour(), request.getPrix());
+            Activation activation = activationService.createActivation(appareil, request.getNombreDeJour(), request.getPrix(), currentUser);
 
             response.put("success", true);
             response.put("voucherNumber", voucher.getNumero());

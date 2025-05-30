@@ -5,6 +5,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToOne;
+import javax.persistence.ManyToOne;
 import javax.persistence.JoinColumn;
 import javax.persistence.Column;
 import javax.persistence.Temporal;
@@ -33,6 +34,10 @@ public class Activation {
     @JoinColumn(name = "appareil_id", nullable = false)
     private Appareil appareil;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Column(nullable = false)
     private Double prix;
     
@@ -40,7 +45,7 @@ public class Activation {
     public Activation() {
     }
     
-    public Activation(Integer nombreDeJour, Date dateDebut, Date dateFin, Appareil appareil, Double prix) {
+    public Activation(Integer nombreDeJour, Date dateDebut, Date dateFin, Appareil appareil, User user, Double prix) {
         this.nombreDeJour = nombreDeJour;
         this.dateDebut = dateDebut;
         this.dateFin = dateFin;
@@ -94,5 +99,13 @@ public class Activation {
 
     public void setPrix(Double prix) {
         this.prix = prix;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

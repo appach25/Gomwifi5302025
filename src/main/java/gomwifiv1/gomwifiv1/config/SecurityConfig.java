@@ -27,12 +27,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http
             .authorizeRequests()
                 .antMatchers("/css/**", "/js/**", "/images/**", "/error/**").permitAll()
-                .antMatchers("/register", "/login").permitAll()
+                .antMatchers("/login").permitAll()
                 // Client management endpoints
                 .antMatchers("/client/create", "/client/search", "/client/list").hasAnyRole("CLIENT_MANAGER", "ADMIN")
                 .antMatchers("/appareil/activate/**").hasAnyRole("CLIENT_MANAGER", "ADMIN")
                 // Admin only endpoints
-                .antMatchers("/admin/**", "/sites/**", "/voucher/**", "/vouchers/**", "/equipment/**").hasRole("ADMIN")
+                .antMatchers("/admin/**", "/sites/**", "/voucher/**", "/vouchers/**", "/equipment/**", "/register/**", "/users/**").hasRole("ADMIN")
                 // Default rule
                 .anyRequest().authenticated()
                 .and()
@@ -65,12 +65,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Bean
     public UserDetailsService userDetailsService() {
-        UserService userService = new UserService();
-        userService.setUserRepository(userRepository);
         return userService;
     }
 
