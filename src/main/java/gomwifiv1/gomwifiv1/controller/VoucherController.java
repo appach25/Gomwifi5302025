@@ -29,14 +29,9 @@ public class VoucherController {
     @PreAuthorize("hasRole('ADMIN')")
     public String listVouchers(Model model) {
         model.addAttribute("vouchers", voucherRepository.findAll());
-        try {
-            ResponseEntity<String> routerVouchers = udrRouterService.getVoucherList();
-            model.addAttribute("routerVouchers", routerVouchers.getBody());
-            model.addAttribute("routerConnected", true);
-        } catch (Exception e) {
-            model.addAttribute("routerError", "Unable to connect to UDR router: " + e.getMessage());
-            model.addAttribute("routerConnected", false);
-        }
+        // UDR Router integration temporarily disabled
+        model.addAttribute("routerConnected", false);
+        model.addAttribute("routerError", "UDR Router integration is currently disabled");
         return "vouchers/list";
     }
 
