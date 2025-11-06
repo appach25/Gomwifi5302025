@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Liste des Sites</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h2>Liste des Sites</h2>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Code Site</th>
+                        <th>Adresse</th>
+                        <th>Type de Connexion</th>
+                        <th>Prix Abonnement</th>
+                        <th>Équipements</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="site : ${sites}">
+                        <td th:text="${site.codesite}"></td>
+                        <td th:text="${site.adresse}"></td>
+                        <td th:text="${site.typedeconnexion}"></td>
+                        <td th:text="${site.prixabonnement}"></td>
+                        <td>
+                            <span th:text="${site.equipments.size()}"></span> équipement(s)
+                        </td>
+                        <td>
+                            <a th:href="@{/sites/{id}/add-equipment(id=${site.id})}" 
+                               class="btn btn-primary btn-sm">
+                                Ajouter Équipement
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

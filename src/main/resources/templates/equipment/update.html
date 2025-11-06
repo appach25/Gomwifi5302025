@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Modifier un Équipement</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h2>Modifier un Équipement</h2>
+
+        <!-- Messages -->
+        <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+        <div th:if="${erreur}" class="alert alert-danger" th:text="${erreur}"></div>
+
+        <form th:action="@{/equipment/enregistrer}" th:object="${equipment}" method="post">
+            <input type="hidden" th:field="*{id}">
+
+            <div class="mb-3">
+                <label for="typeequipment" class="form-label">Type d'équipement</label>
+                <input type="text" class="form-control" id="typeequipment" th:field="*{typeequipment}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="marque" class="form-label">Marque</label>
+                <input type="text" class="form-control" id="marque" th:field="*{marque}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="model" class="form-label">Modèle</label>
+                <input type="text" class="form-control" id="model" th:field="*{model}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="disponibilite" class="form-label">Disponibilité</label>
+                <select class="form-control" id="disponibilite" th:field="*{disponibilite}" required>
+                    <option th:each="status : ${T(gomwifiv1.gomwifiv1.model.Equipment.DisponibiliteStatus).values()}"
+                            th:value="${status}" th:text="${status}">
+                    </option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <a th:href="@{/equipment/}" class="btn btn-secondary">Annuler</a>
+        </form>
+    </div>
+</body>
+</html>

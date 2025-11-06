@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${errorTitle}">Erreur</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        .error-template {
+            padding: 40px 15px;
+            text-align: center;
+        }
+        .error-actions {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .error-actions .btn {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="error-template">
+                    <h1 th:text="${errorTitle}">Erreur</h1>
+                    <div class="error-details">
+                        <p th:text="${errorMessage}">Une erreur s'est produite.</p>
+                    </div>
+                    <div class="error-actions">
+                        <a href="/" class="btn btn-primary">
+                            <i class="fas fa-home"></i> Retour à l'accueil
+                        </a>
+                        <a href="/login" class="btn btn-secondary">
+                            <i class="fas fa-sign-in-alt"></i> Se connecter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+</body>
+</html>

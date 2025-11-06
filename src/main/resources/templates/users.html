@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Liste des Utilisateurs</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col">
+                    <h2><i class="bi bi-people"></i> Liste des Utilisateurs</h2>
+                </div>
+                <div class="col text-end">
+                    <a href="/register" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Nouveau Compte
+                    </a>
+                </div>
+            </div>
+
+            <div th:if="${param.created}" class="alert alert-success alert-dismissible fade show" role="alert">
+                Le compte utilisateur a été créé avec succès.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom d'utilisateur</th>
+                                    <th>Rôles</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="user : ${users}">
+                                    <td th:text="${user.id}"></td>
+                                    <td th:text="${user.username}"></td>
+                                    <td>
+                                        <span th:text="${user.role}" class="badge bg-primary me-1"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">Actif</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
