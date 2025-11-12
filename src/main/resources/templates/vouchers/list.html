@@ -102,26 +102,6 @@
         </div>
     </div>
 
-        <!-- UDR Router Vouchers -->
-        <div class="row mt-5">
-            <div class="col">
-                <h4>UDR Router Vouchers</h4>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div th:if="${routerError}" class="alert alert-danger" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill"></i> 
-                            <span th:text="${routerError}"></span>
-                        </div>
-                        
-                        <div th:if="${routerConnected}" class="table-responsive">
-                            <pre th:text="${routerVouchers}" class="bg-light p-3 rounded"></pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

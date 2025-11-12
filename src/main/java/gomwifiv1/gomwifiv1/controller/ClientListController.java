@@ -41,6 +41,7 @@ public class ClientListController {
     @GetMapping("/list")
     public String listClients(Model model) {
         model.addAttribute("clients", clientRepository.findAll());
+        model.addAttribute("clientCount", clientRepository.count());
         return "client-list";
     }
 
@@ -63,12 +64,15 @@ public class ClientListController {
                 if (activation.isPresent()) {
                     Activation act = activation.get();
                     appareil.setActivation(act);
-                    
                     // Update appareil status based on activation expiration
                     if (act.getDateFin().before(now)) {
                         appareil.setEtat(EtatAppareil.NON_ACTIVER);
                         appareilRepository.save(appareil);
                     }
+                } else {
+                    // No current activation: load the most recent (historical) activation for display
+                    activationRepository.findTopByAppareilOrderByDateFinDesc(appareil)
+                            .ifPresent(appareil::setActivation);
                 }
             }
         }

@@ -13,6 +13,7 @@ import java.util.Optional;
 @Repository
 public interface ActivationRepository extends JpaRepository<Activation, Long> {
     Optional<Activation> findByAppareil(Appareil appareil);
+    Optional<Activation> findTopByAppareilOrderByDateFinDesc(Appareil appareil);
     List<Activation> findByDateDebutBetween(Date startDate, Date endDate);
     List<Activation> findByAppareil_Client_IdAndDateDebutBetween(Long clientId, Date startDate, Date endDate);
     List<Activation> findByAppareil_Client_Id(Long clientId);

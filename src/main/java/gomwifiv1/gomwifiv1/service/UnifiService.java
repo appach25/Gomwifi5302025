@@ -43,6 +43,10 @@ public class UnifiService {
     private final CloseableHttpClient httpClient = createHttpClient();
     private String csrfToken;
     private String cookie;
+    private boolean isLegacy() {
+        String url = unifiConfig.getControllerUrl();
+        return url != null && url.contains(":8443");
+    }
 
     private static final X509TrustManager TRUST_ALL_MANAGER = new X509TrustManager() {
         @Override
@@ -102,98 +106,123 @@ public class UnifiService {
 
     private void login() {
         System.out.println("Attempting to login to UniFi controller...");
-        try {
-            // First get the CSRF token and cookies from the initial page
-            HttpGet initialRequest = new HttpGet(unifiConfig.getControllerUrl());
-            try (CloseableHttpResponse initialResponse = httpClient.execute(initialRequest)) {
-                // Get CSRF token
-                for (org.apache.http.Header header : initialResponse.getHeaders("X-CSRF-Token")) {
-                    csrfToken = header.getValue();
-                    System.out.println("Got initial CSRF token: " + csrfToken);
-                    break;
-                }
+        if (isLegacy()) {
+            loginLegacy();
+        } else {
+            loginOs();
+        }
+    }
 
-                // Get cookies
+    private void loginOs() {
+        try {
+            String csrfUrl = unifiConfig.getControllerUrl() + "/api/auth/csrf";
+            HttpGet csrfRequest = new HttpGet(csrfUrl);
+            System.out.println("[OS] Fetching CSRF from: " + csrfRequest.getURI());
+            try (CloseableHttpResponse csrfResponse = httpClient.execute(csrfRequest)) {
+                int csrfStatus = csrfResponse.getStatusLine().getStatusCode();
+                String csrfBody = csrfResponse.getEntity() != null ? EntityUtils.toString(csrfResponse.getEntity()) : "";
+                System.out.println("[OS] CSRF response status: " + csrfStatus);
+                System.out.println("[OS] CSRF response body: " + csrfBody);
+
+                // Cookies
                 StringBuilder cookieStr = new StringBuilder();
-                for (org.apache.http.Header header : initialResponse.getHeaders("Set-Cookie")) {
+                for (org.apache.http.Header header : csrfResponse.getHeaders("Set-Cookie")) {
                     String headerValue = header.getValue();
                     int semicolonIndex = headerValue.indexOf(';');
-                    if (semicolonIndex != -1) {
-                        headerValue = headerValue.substring(0, semicolonIndex);
-                    }
-                    if (cookieStr.length() > 0) {
-                        cookieStr.append("; ");
-                    }
+                    if (semicolonIndex != -1) headerValue = headerValue.substring(0, semicolonIndex);
+                    if (cookieStr.length() > 0) cookieStr.append("; ");
                     cookieStr.append(headerValue);
                 }
                 if (cookieStr.length() > 0) {
                     cookie = cookieStr.toString();
-                    System.out.println("Got cookies: " + cookie);
+                    System.out.println("[OS] Cookies from CSRF: " + cookie);
                 }
+
+                try {
+                    JsonNode csrfJson = csrfBody.isEmpty() ? null : objectMapper.readTree(csrfBody);
+                    if (csrfJson != null && csrfJson.has("csrfToken")) {
+                        csrfToken = csrfJson.get("csrfToken").asText();
+                        System.out.println("[OS] Parsed CSRF token: " + csrfToken);
+                    }
+                } catch (Exception ignore) {}
             }
 
-            // Now perform the login
             HttpPost request = new HttpPost(unifiConfig.getControllerUrl() + "/api/auth/login");
-            System.out.println("Login URL: " + request.getURI());
-            
             ObjectNode loginBody = objectMapper.createObjectNode();
             loginBody.put("username", unifiConfig.getUsername());
             loginBody.put("password", unifiConfig.getPassword());
-            loginBody.put("type", "login");
             loginBody.put("rememberMe", true);
-
             String jsonBody = objectMapper.writeValueAsString(loginBody);
-            System.out.println("Login request body: " + jsonBody);
-            
             request.setEntity(new StringEntity(jsonBody));
             request.setHeader("Content-Type", "application/json");
-            request.setHeader("Accept", "*/*");
-            request.setHeader("Origin", unifiConfig.getControllerUrl());
-            request.setHeader("Sec-Fetch-Site", "same-origin");
-            request.setHeader("Sec-Fetch-Mode", "cors");
-            request.setHeader("Sec-Fetch-Dest", "empty");
-            request.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
-            if (csrfToken != null) {
-                request.setHeader("X-CSRF-Token", csrfToken);
-            }
-            if (cookie != null) {
-                request.setHeader("Cookie", cookie);
-            }
+            request.setHeader("Accept", "application/json, */*;q=0.8");
+            request.setHeader("User-Agent", "Mozilla/5.0");
+            if (csrfToken != null) request.setHeader("X-CSRF-Token", csrfToken);
+            if (cookie != null) request.setHeader("Cookie", cookie);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 int statusCode = response.getStatusLine().getStatusCode();
-                System.out.println("Login response status: " + statusCode);
-                
-                String responseBody = EntityUtils.toString(response.getEntity());
-                System.out.println("Login response body: " + responseBody);
-
-                if (statusCode == 200) {
-                    for (org.apache.http.Header header : response.getHeaders("Set-Cookie")) {
-                        if (header.getValue().startsWith("TOKEN=")) {
-                            cookie = header.getValue().split(";")[0];
-                            System.out.println("Got cookie: " + cookie);
-                            break;
-                        }
+                String responseBody = response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "";
+                System.out.println("[OS] Login response status: " + statusCode);
+                System.out.println("[OS] Login response body: " + responseBody);
+                if (statusCode != 200) throw new RuntimeException("OS login failed: " + statusCode + ", " + responseBody);
+                for (org.apache.http.Header header : response.getHeaders("Set-Cookie")) {
+                    String val = header.getValue();
+                    if (val.startsWith("TOKEN=")) {
+                        String tokenCookie = val.split(";")[0];
+                        cookie = (cookie == null || cookie.isEmpty()) ? tokenCookie : (cookie.contains("TOKEN=") ? cookie : cookie + "; " + tokenCookie);
                     }
-
-                    JsonNode responseJson = objectMapper.readTree(responseBody);
-                    if (responseJson.has("csrfToken")) {
-                        csrfToken = responseJson.get("csrfToken").asText();
-                        System.out.println("Got CSRF token: " + csrfToken);
-                    }
-                } else {
-                    throw new RuntimeException("Failed to login to UniFi Controller. Status code: " + statusCode + ", Response: " + responseBody);
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to login to UniFi Controller", e);
+            throw new RuntimeException("Failed OS login: " + e.getMessage(), e);
+        }
+    }
+
+    private void loginLegacy() {
+        try {
+            HttpPost request = new HttpPost(unifiConfig.getControllerUrl() + "/api/login");
+            ObjectNode loginBody = objectMapper.createObjectNode();
+            loginBody.put("username", unifiConfig.getUsername());
+            loginBody.put("password", unifiConfig.getPassword());
+            String jsonBody = objectMapper.writeValueAsString(loginBody);
+            request.setEntity(new StringEntity(jsonBody));
+            request.setHeader("Content-Type", "application/json");
+            request.setHeader("Accept", "application/json");
+            request.setHeader("User-Agent", "Mozilla/5.0");
+            if (cookie != null) request.setHeader("Cookie", cookie);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "";
+                System.out.println("[LEGACY] Login response status: " + statusCode);
+                System.out.println("[LEGACY] Login response body: " + responseBody);
+                if (statusCode != 200) throw new RuntimeException("Legacy login failed: " + statusCode + ", " + responseBody);
+                // Collect session cookie (unifises)
+                StringBuilder cookieStr = new StringBuilder(cookie == null ? "" : cookie);
+                for (org.apache.http.Header header : response.getHeaders("Set-Cookie")) {
+                    String headerValue = header.getValue();
+                    int semicolonIndex = headerValue.indexOf(';');
+                    if (semicolonIndex != -1) headerValue = headerValue.substring(0, semicolonIndex);
+                    if (cookieStr.length() > 0) cookieStr.append("; ");
+                    cookieStr.append(headerValue);
+                }
+                cookie = cookieStr.toString();
+                csrfToken = null; // not used on legacy
+                System.out.println("[LEGACY] Using cookies: " + cookie);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed legacy login: " + e.getMessage(), e);
         }
     }
 
     public JsonNode createVoucher(int minutes, int quantity) {
         System.out.println("Creating voucher - Minutes: " + minutes + ", Quantity: " + quantity);
         try {
-            HttpPost request = new HttpPost(unifiConfig.getControllerUrl() + "/api/s/" + unifiConfig.getSite() + "/cmd/hotspot");
+            String base = unifiConfig.getControllerUrl();
+            String url = isLegacy() ? (base + "/api/s/" + unifiConfig.getSite() + "/cmd/hotspot")
+                                    : (base + "/proxy/network/api/s/" + unifiConfig.getSite() + "/cmd/hotspot");
+            HttpPost request = new HttpPost(url);
             
             ObjectNode body = objectMapper.createObjectNode();
             body.put("cmd", "create-voucher");
@@ -211,8 +240,8 @@ public class UnifiService {
             request.setEntity(new StringEntity(jsonBody));
             request.setHeader("Content-Type", "application/json");
             request.setHeader("Accept", "application/json");
-            request.setHeader("Cookie", cookie);
-            request.setHeader("X-Csrf-Token", csrfToken);
+            if (cookie != null) request.setHeader("Cookie", cookie);
+            if (!isLegacy() && csrfToken != null) request.setHeader("X-Csrf-Token", csrfToken);
             
             System.out.println("Sending request to: " + request.getURI());
 
@@ -233,11 +262,14 @@ public class UnifiService {
             login();
             
             // Then get vouchers
-            HttpGet request = new HttpGet(unifiConfig.getControllerUrl() + "/proxy/network/api/s/" + unifiConfig.getSite() + "/stat/voucher");
+            String base = unifiConfig.getControllerUrl();
+            String url = isLegacy() ? (base + "/api/s/" + unifiConfig.getSite() + "/stat/voucher")
+                                    : (base + "/proxy/network/api/s/" + unifiConfig.getSite() + "/stat/voucher");
+            HttpGet request = new HttpGet(url);
             System.out.println("GET Vouchers URL: " + request.getURI());
             
-            request.setHeader("Cookie", cookie);
-            request.setHeader("X-Csrf-Token", csrfToken);
+            if (cookie != null) request.setHeader("Cookie", cookie);
+            if (!isLegacy() && csrfToken != null) request.setHeader("X-Csrf-Token", csrfToken);
             request.setHeader("Accept", "application/json");
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -250,8 +282,8 @@ public class UnifiService {
                 if (statusCode == 401) {
                     // Try logging in again and retry
                     login();
-                    request.setHeader("Cookie", cookie);
-                    request.setHeader("X-Csrf-Token", csrfToken);
+                    if (cookie != null) request.setHeader("Cookie", cookie);
+                    if (!isLegacy() && csrfToken != null) request.setHeader("X-Csrf-Token", csrfToken);
                     try (CloseableHttpResponse retryResponse = httpClient.execute(request)) {
                         statusCode = retryResponse.getStatusLine().getStatusCode();
                         responseBody = EntityUtils.toString(retryResponse.getEntity());
@@ -277,7 +309,10 @@ public class UnifiService {
 
     public boolean deleteVoucher(String voucherId) {
         try {
-            HttpPost request = new HttpPost(unifiConfig.getControllerUrl() + "/proxy/network/api/s/" + unifiConfig.getSite() + "/cmd/hotspot");
+            String base = unifiConfig.getControllerUrl();
+            String url = isLegacy() ? (base + "/api/s/" + unifiConfig.getSite() + "/cmd/hotspot")
+                                    : (base + "/proxy/network/api/s/" + unifiConfig.getSite() + "/cmd/hotspot");
+            HttpPost request = new HttpPost(url);
             
             ObjectNode body = objectMapper.createObjectNode();
             body.put("cmd", "delete-voucher");
@@ -285,8 +320,8 @@ public class UnifiService {
 
             request.setEntity(new StringEntity(objectMapper.writeValueAsString(body)));
             request.setHeader("Content-Type", "application/json");
-            request.setHeader("Cookie", cookie);
-            request.setHeader("X-Csrf-Token", csrfToken);
+            if (cookie != null) request.setHeader("Cookie", cookie);
+            if (!isLegacy() && csrfToken != null) request.setHeader("X-Csrf-Token", csrfToken);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getStatusLine().getStatusCode() == 200;

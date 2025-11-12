@@ -26,7 +26,22 @@ import java.util.Map;
  */
 @Service
 public class UDRRouterService {
+    private final UnifiService unifiService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public UDRRouterService(UnifiService unifiService) {
+        this.unifiService = unifiService;
+    }
+
     public ResponseEntity<String> getVoucherList() {
-        return ResponseEntity.ok("{\"message\": \"UDR Router integration is currently disabled\"}");
+        try {
+            var vouchers = unifiService.getVouchers();
+            String body = objectMapper.writeValueAsString(vouchers);
+            return ResponseEntity.ok(body);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body("{\"error\":\"Failed to fetch vouchers from UniFi: " + ex.getMessage().replace("\"", "'") + "\"}");
+        }
     }
 }
+
