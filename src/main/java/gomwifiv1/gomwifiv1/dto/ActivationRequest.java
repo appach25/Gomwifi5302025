@@ -23,9 +23,9 @@ public class ActivationRequest {
     public Double getPrix() {
         if (nombreDeJour == null) return 0.0;
         return switch (nombreDeJour) {
-            case 1 -> 50.0;
-            case 7 -> 150.0;
-            case 30 -> 500.0;
+            case 1 -> 100.0;
+            case 7 -> 250.0;
+            case 30 -> 750.0;
             default -> 0.0;
         };
     }

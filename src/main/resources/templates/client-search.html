@@ -129,9 +129,9 @@
                             <label for="nombreDeJour" class="form-label">Nombre de Jours</label>
                             <select class="form-select" id="nombreDeJour" name="nombreDeJour" required onchange="updatePrix()">
                                 <option value="">Choisir...</option>
-                                <option value="1">1 jour - 50 gourdes</option>
-                                <option value="7">7 jours - 150 gourdes</option>
-                                <option value="30">30 jours - 500 gourdes</option>
+                                <option value="1">1 jour - 100 gourdes</option>
+                                <option value="7">7 jours - 250 gourdes</option>
+                                <option value="30">30 jours - 750 gourdes</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -188,9 +188,9 @@
 
         function updatePrix() {
             const select = document.getElementById('nombreDeJour');
-            const prix = select.value === '1' ? 50 :
-                        select.value === '7' ? 150 :
-                        select.value === '30' ? 500 : 0;
+            const prix = select.value === '1' ? 100 :
+                        select.value === '7' ? 250 :
+                        select.value === '30' ? 750 : 0;
             document.getElementById('prixDisplay').textContent = prix + ' gourdes';
         }
 

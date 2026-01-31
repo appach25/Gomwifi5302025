@@ -37,9 +37,9 @@
                                 <label for="nombreDeJour" class="form-label">Durée du Voucher</label>
                                 <select class="form-select" id="nombreDeJour" name="nombreDeJour" required onchange="updatePrice()">
                                     <option value="">Choisir une durée...</option>
-                                    <option value="1">1 jour - 50 gourdes</option>
-                                    <option value="7">7 jours - 150 gourdes</option>
-                                    <option value="30">30 jours - 500 gourdes</option>
+                                    <option value="1">1 jour - 100 gourdes</option>
+                                    <option value="7">7 jours - 250 gourdes</option>
+                                    <option value="30">30 jours - 750 gourdes</option>
                                 </select>
                             </div>
 
@@ -84,13 +84,13 @@
 
             switch (parseInt(nombreDeJour)) {
                 case 1:
-                    prix = 50;
+                    prix = 100;
                     break;
                 case 7:
-                    prix = 150;
+                    prix = 250;
                     break;
                 case 30:
-                    prix = 500;
+                    prix = 750;
                     break;
             }
 
